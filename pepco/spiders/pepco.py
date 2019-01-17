@@ -74,6 +74,7 @@ class PepcoSpider(Spider):
                 self.driver.get(response.url)
             if self.driver.current_url != 'https://secure.pepco.com/Pages/Login.aspx':
                 self.driver.get('https://secure.pepco.com/Pages/Login.aspx')
+            sleep(2)
             self.login(user_index)
             account_index = 0
             final_option = True
@@ -97,6 +98,7 @@ class PepcoSpider(Spider):
 
                         if self.driver.current_url != 'https://secure.pepco.com/MyAccount/MyBillUsage/Pages/Secure/AccountHistory.aspx':
                             self.driver.get('https://secure.pepco.com/MyAccount/MyBillUsage/Pages/Secure/AccountHistory.aspx')
+                        sleep(5)
 
                         options = self.driver.find_elements_by_xpath('//select[@id="StatementType"]//option')
                         if options:
@@ -108,6 +110,7 @@ class PepcoSpider(Spider):
                         )
                         if search_button:
                             search_button[0].click()
+                            sleep(5)
                         else:
                             print "There is no search button"
 
@@ -168,7 +171,7 @@ class PepcoSpider(Spider):
         if os.path.exists('C:/Users/webguru/Downloads/BillImage (1).pdf'):
             os.remove('C:/Users/webguru/Downloads/BillImage (1).pdf')
         print_btn.click()
-        sleep(10)
+        sleep(5)
 
         if os.path.exists('C:/Users/webguru/Downloads/BillImage.pdf'):
             os.rename('C:/Users/webguru/Downloads/BillImage.pdf', 'C:/Users/webguru/Downloads/' + file_name)
