@@ -68,38 +68,52 @@ class PepcoSpider(Spider):
 
         all_users_option = True
         user_index = 0
+        account_page_num = 0
+        account_index = 0
         while all_users_option:
 
             if user_index == 0:
                 self.driver.get(response.url)
             if self.driver.current_url != 'https://secure.pepco.com/Pages/Login.aspx':
                 self.driver.get('https://secure.pepco.com/Pages/Login.aspx')
-            sleep(2)
-            self.login(user_index)
 
+            self.login(user_index)
+            sleep(5)
             all_accounts_all_pages_finished = False
+            account_page_num = 1
             while not all_accounts_all_pages_finished:
                 try:
                     if self.driver.current_url != 'https://secure.pepco.com/Pages/ChangeAccount.aspx':
                         self.driver.get('https://secure.pepco.com/Pages/ChangeAccount.aspx')
-
+                    sleep(5)
                     all_accounts_one_page_finished = False
                     account_index = 0
+
                     while not all_accounts_one_page_finished:
 
+                        if self.driver.current_url != 'https://secure.pepco.com/Pages/ChangeAccount.aspx':
+                            self.driver.get('https://secure.pepco.com/Pages/ChangeAccount.aspx')
+                            sleep(5)
+
+                        index = 1
+                        while index < account_page_num:
+                            self.driver.find_elements_by_xpath('//li[@class="paginate_button next"]')[0].click()
+                            index += 1
                         sleep(5)
+
                         account_selected = True
                         account_rows = self.driver.find_elements_by_xpath('//table[@id="changeAccountDT1"]//tbody//tr')
                         while account_selected:
                             try:
                                 account_rows[account_index].find_elements_by_xpath(
                                     './/td[@class="action-cell ng-scope"]//button')[1].click()
-                                sleep(8)
+                                sleep(5)
                                 account_index = account_index + 1
 
                                 if self.driver.current_url != 'https://secure.pepco.com/MyAccount/MyBillUsage/Pages/Secure/AccountHistory.aspx':
-                                    self.driver.get('https://secure.pepco.com/MyAccount/MyBillUsage/Pages/Secure/AccountHistory.aspx')
-                                sleep(8)
+                                    self.driver.get(
+                                        'https://secure.pepco.com/MyAccount/MyBillUsage/Pages/Secure/AccountHistory.aspx')
+                                sleep(5)
 
                                 options = self.driver.find_elements_by_xpath('//select[@id="StatementType"]//option')
                                 if options:
@@ -111,9 +125,10 @@ class PepcoSpider(Spider):
                                 )
                                 if search_button:
                                     search_button[0].click()
-                                    sleep(5)
                                 else:
                                     print "There is no search button"
+
+                                sleep(5)
 
                                 account_number = self.driver.find_elements_by_xpath(
                                     '//p[contains(text(), "Account")]//span[@class="exc-data-neutral ng-binding"]'
@@ -123,40 +138,76 @@ class PepcoSpider(Spider):
                                 all_pages_crawled = False
                                 while not all_pages_crawled:
                                     rows = self.driver.find_elements_by_xpath('//table//tbody//tr')
-                                    for row in rows:
-                                        bill_date_info = row.find_elements_by_xpath('.//td')[0].text.split('/')
-                                        bill_date = bill_date_info[2] + bill_date_info[0] + bill_date_info[1]
-                                        print_btn = row.find_elements_by_xpath('.//td//button[contains(text(), "View")]')[0]
-                                        sleep(5)
-                                        if '{}-{}'.format(account_number, bill_date) not in self.logs:
-                                            print '--- downloading ---'
-                                            yield self.download_page(print_btn, account_number, bill_date)
+                                    row = rows[0]
+
+                                    # for row in rows:
+                                    bill_date_info = row.find_elements_by_xpath('.//td')[0].text.split('/')
+                                    bill_date = bill_date_info[2] + bill_date_info[0] + bill_date_info[1]
+                                    print_btn = row.find_elements_by_xpath(
+                                        './/td//button[contains(text(), "View")]')[0]
+                                    if '{}-{}'.format(account_number, bill_date) not in self.logs:
+                                        print '--- downloading ---'
+                                        yield self.download_page(print_btn, account_number, bill_date)
+
                                     print('======moving to other account=======')
+
+                                    print account_index
+                                    print account_page_num
+                                    print user_index
+
                                     try:
-                                        self.driver.find_elements_by_xpath('//li[@class="paginate_button next"]')[0].click()
+                                        self.driver.find_elements_by_xpath('//li[@class="paginate_button next"]')[
+                                            0].click()
+
                                     except:
                                         all_pages_crawled = True
 
                                 self.driver.find_elements_by_xpath(
-                                    '//button[@class="btn btn-primary" and contains(text(), "Change Account")]')[0].click()
+                                    '//button[@class="btn btn-primary" and contains(text(), "Change Account")]')[
+                                    0].click()
                             except:
                                 account_selected = False
 
-                            if account_index > len(account_rows) - 1:
+                            # if account_index > len(account_rows) - 1:
+                            if account_index > 2:
                                 all_accounts_one_page_finished = True
 
                     print("=====move to next account page=====")
-                    self.driver.find_elements_by_xpath('//li[@class="paginate_button next"]')[0].click()
+                    print account_index
+                    print account_page_num
+                    print user_index
+
+                    account_page_num += 1
+
+                    sleep(5)
+                    logout_button = self.driver.find_element_by_xpath(
+                        '//button[contains(text(), "Sign Out")]'
+                    )
+                    logout_button.click()
+                    sleep(5)
+                    if self.driver.current_url != 'https://secure.pepco.com/Pages/Login.aspx':
+                        self.driver.get('https://secure.pepco.com/Pages/Login.aspx')
+                    sleep(5)
+                    self.login(user_index)
+
+                    if account_page_num > 24:
+                        all_accounts_all_pages_finished = True
                 except:
-                    sleep(2)
+                    # sleep(2)
                     all_accounts_all_pages_finished = True
+
             print('===========All files of your account have been downloaded============')
+
             user_index = user_index + 1
-            if user_index > len(self.username_list) - 1:
+            # if user_index > len(self.username_list) - 1:
+            if user_index > 1:
                 all_users_option = False
 
         print('===========All files of all users have been downloaded================')
-        self.driver.close()
+        print account_index
+        print account_page_num
+        print user_index
+        # self.driver.close()
 
     def download_page(self, print_btn=None, account_number=None, bill_date=None):
 
