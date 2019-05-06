@@ -210,6 +210,18 @@ class PepcoSpider(Spider):
                 writer = csv.writer(csv_write)
                 writer.writerows(lines)
 
+            input = open('updated_EquityMgmt2LLC-account_number REV.csv', 'rb')
+            output = open('output.csv', 'wb')
+            writer = csv.writer(output)
+            for row in csv.reader(input):
+                if row:
+                    writer.writerow(row)
+            input.close()
+            output.close()
+
+            os.remove('updated_EquityMgmt2LLC-account_number REV.csv')
+            os.rename('output.csv', 'updated_EquityMgmt2LLC-account_number REV.csv')
+
         print('===========All files of all users have been downloaded================')
         self.driver.close()
 
