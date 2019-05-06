@@ -30,7 +30,7 @@ class PepcoSpider(Spider):
                     self.username_list.append(row[1])
                     self.password_list.append(row[2])
 
-        with open('EquityMgmt2LLC-account_number REV.csv', 'rb') as csvfile_numbers:
+        with open('TEST_EquityMgmt2LLC-account_number REV.csv', 'rb') as csvfile_numbers:
             reader_numbers = csv.reader(csvfile_numbers)
             self.accountOwnerID_list = []
             self.accountNumber_list = []
@@ -113,7 +113,7 @@ class PepcoSpider(Spider):
                 account_number = self.accountNumber_list[account_index]
                 # account_number = self.driver.find_elements_by_xpath(
                 #     '//div[@class="exc-account-summary"]/p[contains(text(), "Account #")]/span')[0].text
-                # account_number = '55012719443'
+                # account_number = '55019181241'
 
                 account_number_search_input.send_keys(account_number)
                 time.sleep(2)
@@ -124,11 +124,10 @@ class PepcoSpider(Spider):
                     time.sleep(5)
                     view_button = account_rows[0].find_elements_by_xpath(
                         './/td[@class="action-cell ng-scope"]//button')
-                    try:
+                    if view_button:
                         view_button[1].click()
-                    except:
-                        print account_number
-                        print '=================================='
+                    else:
+                        pass
                 else:
                     pass
 
@@ -170,17 +169,8 @@ class PepcoSpider(Spider):
                             # if '{}-{}'.format(account_number, bill_date) not in self.logs:
                             if last_downloaded_date + timedelta(days=28) < datetime.now():
                                 print '--- downloading ---'
-                                yield self.download_page(print_btn, accountOwnerID, account_number, bill_date)
+                                yield self.download_page(print_btn, account_number, bill_date)
                                 time.sleep(2)
-
-                                with open('EquityMgmt2LLC-account_number REV.csv', 'rb') as csv_read:
-                                    reader = csv.reader(csv_read)
-                                    lines = list(reader)
-                                    lines[account_index + 1][2] = '5/2/2019'
-
-                                with open('EquityMgmt2LLC-account_number REV.csv', 'w') as csv_write:
-                                    writer = csv.writer(csv_write)
-                                    writer.writerows(lines)
 
                             try:
                                 self.driver.find_elements_by_xpath('//li[@class="paginate_button next"]')[
@@ -199,20 +189,32 @@ class PepcoSpider(Spider):
                 time.sleep(3)
 
                 account_index = account_index + 1
-                if account_index > len(self.accountNumber_list) - 1:
+                if account_index > len(self.accountOwnerID_list) - 1:
                     all_numbers_option = False
 
             print('===========All files of your account have been downloaded================')
-            user_index = user_index + 1
-            if user_index > len(self.accountOwnerID_list) - 1:
-                all_users_option = False
+            # user_index = user_index + 1
+            # if user_index > len(self.accountOwnerID_list) - 1:
+            #     all_users_option = False
+            all_users_option = False
+            self.driver.close()
+
+            with open('TEST_EquityMgmt2LLC-account_number REV.csv', 'rb') as csv_read:
+                reader = csv.reader(csv_read)
+                lines = list(reader)
+                for i in range(1, 4):
+                    lines[i][2] = '5/2/2019'
+
+            with open('updated_EquityMgmt2LLC-account_number REV.csv', 'w') as csv_write:
+                writer = csv.writer(csv_write)
+                writer.writerows(lines)
 
         print('===========All files of all users have been downloaded================')
         self.driver.close()
 
-    def download_page(self, print_btn=None, accountOwnerID=None, account_number=None, bill_date=None):
+    def download_page(self, print_btn=None, account_number=None, bill_date=None):
 
-        file_name = '{}_{}_{}.pdf'.format(accountOwnerID, account_number, bill_date)
+        file_name = '{}_{}.pdf'.format(account_number, bill_date)
 
         print "===================================="
         print file_name
@@ -224,7 +226,7 @@ class PepcoSpider(Spider):
         print_btn.click()
         time.sleep(5)
 
-        self.write_logs('{}-{}-{}'.format(accountOwnerID, account_number, bill_date))
+        self.write_logs('{}-{}'.format(account_number, bill_date))
 
         if os.path.exists('C:/Users/webguru/Downloads/BillImage.pdf'):
             os.rename('C:/Users/webguru/Downloads/BillImage.pdf', 'C:/Users/webguru/Downloads/pepco/' + file_name)
