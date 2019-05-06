@@ -167,7 +167,8 @@ class PepcoSpider(Spider):
                             last_downloaded_date = datetime.strptime(self.lastDownloadBillDate_list[user_index], "%m/%d/%Y")
 
                             # if '{}-{}'.format(account_number, bill_date) not in self.logs:
-                            if last_downloaded_date + timedelta(days=28) < datetime.now():
+                            cycle_date = int(self.billCycleDays_list[account_index])
+                            if last_downloaded_date + timedelta(days=cycle_date) < datetime.now():
                                 print '--- downloading ---'
                                 yield self.download_page(print_btn, account_number, bill_date)
                                 time.sleep(2)
@@ -203,7 +204,7 @@ class PepcoSpider(Spider):
                 reader = csv.reader(csv_read)
                 lines = list(reader)
                 for i in range(1, 4):
-                    lines[i][2] = '5/2/2019'
+                    lines[i][2] = datetime.today().strftime('%m/%d/%Y')
 
             with open('updated_EquityMgmt2LLC-account_number REV.csv', 'w') as csv_write:
                 writer = csv.writer(csv_write)
