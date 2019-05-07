@@ -164,13 +164,37 @@ class PepcoSpider(Spider):
                             print_btn = row.find_elements_by_xpath(
                                 './/td//button[contains(text(), "View")]')[0]
 
-                            last_downloaded_date = datetime.strptime(self.lastDownloadBillDate_list[user_index], "%m/%d/%Y")
+                            last_downloaded_date = datetime.strptime(self.lastDownloadBillDate_list[account_index], "%m/%d/%Y")
 
                             # if '{}-{}'.format(account_number, bill_date) not in self.logs:
                             cycle_date = int(self.billCycleDays_list[account_index])
                             if last_downloaded_date + timedelta(days=cycle_date) < datetime.now():
                                 print '--- downloading ---'
                                 yield self.download_page(print_btn, account_number, bill_date)
+                                time.sleep(2)
+
+                                with open('TEST_EquityMgmt2LLC-account_number REV.csv', 'rb') as csv_read:
+                                    reader = csv.reader(csv_read)
+                                    lines = list(reader)
+                                    lines[account_index + 1][2] = datetime.today().strftime('%m/%d/%Y')
+
+                                with open('updated_EquityMgmt2LLC-account_number REV.csv', 'w') as csv_write:
+                                    writer = csv.writer(csv_write)
+                                    writer.writerows(lines)
+
+                                input = open('updated_EquityMgmt2LLC-account_number REV.csv', 'rb')
+                                output = open('output.csv', 'wb')
+                                writer = csv.writer(output)
+                                for row in csv.reader(input):
+                                    if row:
+                                        writer.writerow(row)
+                                input.close()
+                                output.close()
+
+                                os.remove('updated_EquityMgmt2LLC-account_number REV.csv')
+                                os.remove('TEST_EquityMgmt2LLC-account_number REV.csv')
+                                os.rename('output.csv', 'TEST_EquityMgmt2LLC-account_number REV.csv')
+
                                 time.sleep(2)
 
                             try:
@@ -199,28 +223,6 @@ class PepcoSpider(Spider):
             #     all_users_option = False
             all_users_option = False
             self.driver.close()
-
-            with open('TEST_EquityMgmt2LLC-account_number REV.csv', 'rb') as csv_read:
-                reader = csv.reader(csv_read)
-                lines = list(reader)
-                for i in range(1, 4):
-                    lines[i][2] = datetime.today().strftime('%m/%d/%Y')
-
-            with open('updated_EquityMgmt2LLC-account_number REV.csv', 'w') as csv_write:
-                writer = csv.writer(csv_write)
-                writer.writerows(lines)
-
-            input = open('updated_EquityMgmt2LLC-account_number REV.csv', 'rb')
-            output = open('output.csv', 'wb')
-            writer = csv.writer(output)
-            for row in csv.reader(input):
-                if row:
-                    writer.writerow(row)
-            input.close()
-            output.close()
-
-            os.remove('updated_EquityMgmt2LLC-account_number REV.csv')
-            os.rename('output.csv', 'updated_EquityMgmt2LLC-account_number REV.csv')
 
         print('===========All files of all users have been downloaded================')
         self.driver.close()
