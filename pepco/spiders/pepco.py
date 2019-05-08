@@ -30,24 +30,6 @@ class PepcoSpider(Spider):
                     self.username_list.append(row[1])
                     self.password_list.append(row[2])
 
-        with open('EquityMgmt2LLC-account_number REV.csv', 'rb') as csvfile_numbers:
-            reader_numbers = csv.reader(csvfile_numbers)
-            self.accountOwnerID_list = []
-            self.accountNumber_list = []
-            self.lastDownloadBillDate_list = []
-            self.billCycleDays_list = []
-            for row_index, row in enumerate(reader_numbers):
-                if row_index != 0:
-                    last_downloaded_date = datetime.strptime(row[2], "%m/%d/%Y")
-                    cycle_date = int(row[3])
-                    if last_downloaded_date + timedelta(days=cycle_date) < datetime.now():
-                        self.accountOwnerID_list.append(row[0])
-                        self.accountNumber_list.append(row[1])
-                        self.lastDownloadBillDate_list.append(row[2])
-                        self.billCycleDays_list.append(row[3])
-                    else:
-                        pass
-
         self.user_index = 0
 
         self.download_directory = download_directory if download_directory else 'C:/Users/webguru/Downloads/pepco/'
@@ -92,16 +74,37 @@ class PepcoSpider(Spider):
         all_users_option = True
 
         user_index = 0
-        accountOwnerID = self.accountOwnerID_list[user_index]
-        login_index = self.accountOwnerID_credential_list.index(accountOwnerID)
+
         while all_users_option:
 
             if user_index == 0:
                 self.driver.get(response.url)
             if self.driver.current_url != 'https://secure.pepco.com/Pages/Login.aspx':
                 self.driver.get('https://secure.pepco.com/Pages/Login.aspx')
-            self.login(login_index)
+            self.login(user_index)
             time.sleep(3)
+
+            accountOwnerID = self.accountOwnerID_credential_list[user_index]
+            account_file_name = '{}-account_number REV.csv'.format(accountOwnerID)
+            updated_file_name = 'updated-' + account_file_name
+
+            with open(account_file_name, 'rb') as csvfile_numbers:
+                reader_numbers = csv.reader(csvfile_numbers)
+                accountOwnerID_list = []
+                accountNumber_list = []
+                lastDownloadBillDate_list = []
+                billCycleDays_list = []
+                for row_index, row in enumerate(reader_numbers):
+                    if row_index != 0:
+                        last_downloaded_date = datetime.strptime(row[2], "%m/%d/%Y")
+                        cycle_date = int(row[3])
+                        if last_downloaded_date + timedelta(days=cycle_date) < datetime.now():
+                            accountOwnerID_list.append(row[0])
+                            accountNumber_list.append(row[1])
+                            lastDownloadBillDate_list.append(row[2])
+                            billCycleDays_list.append(row[3])
+                        else:
+                            pass
 
             account_index = 0
             all_numbers_option = True
@@ -115,7 +118,7 @@ class PepcoSpider(Spider):
                 account_number_search_input = self.driver.find_element_by_xpath(
                     '//div[contains(@id, "changeAccountDT1_filter")]//input[contains(@type, "search")]')
 
-                account_number = self.accountNumber_list[account_index]
+                account_number = accountNumber_list[account_index]
                 # account_number = '55019181241'
 
                 account_number_search_input.send_keys(account_number)
@@ -171,16 +174,16 @@ class PepcoSpider(Spider):
                             yield self.download_page(print_btn, account_number, bill_date)
                             time.sleep(2)
 
-                            with open('EquityMgmt2LLC-account_number REV.csv', 'rb') as csv_read:
+                            with open(account_file_name, 'rb') as csv_read:
                                 reader = csv.reader(csv_read)
                                 lines = list(reader)
                                 lines[account_index + 1][2] = datetime.today().strftime('%m/%d/%Y')
 
-                            with open('updated_EquityMgmt2LLC-account_number REV.csv', 'w') as csv_write:
+                            with open(updated_file_name, 'w') as csv_write:
                                 writer = csv.writer(csv_write)
                                 writer.writerows(lines)
 
-                            input = open('updated_EquityMgmt2LLC-account_number REV.csv', 'rb')
+                            input = open(updated_file_name, 'rb')
                             output = open('output.csv', 'wb')
                             writer = csv.writer(output)
                             for row in csv.reader(input):
@@ -189,9 +192,9 @@ class PepcoSpider(Spider):
                             input.close()
                             output.close()
 
-                            os.remove('updated_EquityMgmt2LLC-account_number REV.csv')
-                            os.remove('EquityMgmt2LLC-account_number REV.csv')
-                            os.rename('output.csv', 'EquityMgmt2LLC-account_number REV.csv')
+                            os.remove(updated_file_name)
+                            os.remove(account_file_name)
+                            os.rename('output.csv', account_file_name)
 
                             time.sleep(2)
 
@@ -212,15 +215,13 @@ class PepcoSpider(Spider):
                 time.sleep(3)
 
                 account_index = account_index + 1
-                if account_index > len(self.accountOwnerID_list) - 1:
+                if account_index > len(accountOwnerID_list) - 1:
                     all_numbers_option = False
 
-            # print('===========All files of your account have been downloaded================')
-            # user_index = user_index + 1
-            # if user_index > len(self.accountOwnerID_list) - 1:
-            #     all_users_option = False
-            all_users_option = False
-            self.driver.close()
+            print('===========All files of your account have been downloaded================')
+            user_index = user_index + 1
+            if user_index > len(self.accountOwnerID_credential_list) - 1:
+                all_users_option = False
 
         print('===========All files of all users have been downloaded================')
         self.driver.close()
